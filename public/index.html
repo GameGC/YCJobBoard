@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="YC Jobs" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="manifest" href="/manifest.json" />
+  <title>YC Jobs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="./Job.js"></script>
+  <script src="../../YCproject 2/public/Job.ts"></script>
+</head>
+<body>
+
+<!-- ── HEADER ─────────────────────────────────────────────────────────── -->
+<header class="header">
+
+  <!-- Row 1: search bar -->
+  <div class="header-content">
+    <div class="logo-search">
+
+      <!-- YC Logo -->
+      <div class="yc-logo" title="Y Combinator Jobs">
+        <span>YC</span>
+      </div>
+
+      <!-- Query input -->
+      <input class="search-input" id="queryInput" type="text"
+             placeholder="Job title or keywords" value="full stack developer" />
+
+      <!-- Location input -->
+      <input class="search-input" id="locationInput" type="text"
+             placeholder="Location" value="San Francisco" />
+
+      <!-- Search button -->
+      <button class="btn-search" id="searchBtn">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"
+             stroke="currentColor" stroke-width="2.5">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        Search
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Row 2: filter pills -->
+  <div class="filter-bar">
+    <!-- Job-type pills -->
+    <button class="pill pill-type jobs" data-type="">All Jobs</button>
+    <button class="pill pill-type" data-type="Full-time">Full-time</button>
+    <button class="pill pill-type" data-type="Part-time">Part-time</button>
+    <button class="pill pill-type" data-type="Contract">Contract</button>
+    <button class="pill pill-type" data-type="Internship">Internship</button>
+  </div>
+
+</header>
+
+<!-- ── APP ───────────────────────────────────────────────────────────── -->
+<div class="app-layout">
+  <div class="main-content">
+
+    <!-- Job list -->
+    <div class="job-list-pane" id="jobListPane">
+      <div class="list-header">
+        <span class="list-count" id="listCount">0 jobs</span>
+        <span class="list-query"  id="listQuery"></span>
+      </div>
+      <div id="jobCards">
+        <div class="no-jobs">Enter a search query and press Search.</div>
+      </div>
+    </div>
+
+    <!-- Job detail -->
+    <div class="job-detail-pane" id="jobDetailPane">
+      <div class="detail-empty" id="detailEmpty">Select a job to view details</div>
+      <div class="detail-inner" id="detailInner" style="display:none"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="console.log" id="console.log"></div>
+
+<script>
+// ── Constants ──────────────────────────────────────────────────────────────
+const API_BASE   = 'https://ycagentbackend.up.railway.app/jobs/search';
+const CACHE_NAME = 'yc-jobs-v2';
+const SEARCH_TTL = 5 * 60 * 1000;  // 5 min
+
+// ── State ──────────────────────────────────────────────────────────────────
+let jobs        = [];
+let selectedIdx = null;
+let activeType  = '';          // current job_type filter
+
+// ── Cache helpers ──────────────────────────────────────────────────────────
+async function cachedFetch(url, ttl = Infinity) {
+  const cache  = await caches.open(CACHE_NAME);
+  const cached = await cache.match(url);
+  if (cached) {
+    const age = Date.now() - Number(cached.headers.get('x-cached-at'));
+    if (age < ttl) return cached.json();
+  }
+  const res  = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const body = await res.json();
+  await cache.put(url, new Response(JSON.stringify(body), {
+    headers: { 'Content-Type': 'application/json', 'x-cached-at': String(Date.now()) }
+  }));
+  return body;
+}
+
+// ── Search ─────────────────────────────────────────────────────────────────
+async function performSearch(query, location, jobType) {
+  const container = document.getElementById('jobCards');
+  const countEl   = document.getElementById('listCount');
+  const queryEl   = document.getElementById('listQuery');
+
+  container.innerHTML = '<div class="no-jobs loading-spinner">Searching&hellip;</div>';
+  countEl.textContent = '';
+  queryEl.textContent = '';
+  jobs = [];
+  selectedIdx = null;
+  document.getElementById('detailEmpty').style.display = 'flex';
+  document.getElementById('detailInner').style.display = 'none';
+
+  try {
+    const params = new URLSearchParams({ q: query || '' });
+    if (location) params.set('location', location);
+    if (jobType)  params.set('job_type', jobType);
+    const url  = `${API_BASE}?${params}`;
+    const data = await cachedFetch(url, SEARCH_TTL);
+
+    // Support both { jobs: [...] } and direct array response
+    const raw = Array.isArray(data) ? data : (data.jobs || []);
+    jobs = raw.map(mapYCJob);
+
+    countEl.textContent = `${jobs.length} job${jobs.length !== 1 ? 's' : ''}`;
+    queryEl.textContent = query ? `"${query}"` : '';
+
+    if (!jobs.length) {
+      container.innerHTML = '<div class="no-jobs">No jobs found. Try a different search.</div>';
+      return;
+    }
+    container.innerHTML = '';
+    renderCards(jobs);
+
+    // Auto-select first job on desktop
+    if (window.innerWidth >= 900) selectJob(0);
+  } catch (err) {
+    container.innerHTML = `<div class="no-jobs">Error: ${esc(err.message)}</div>`;
+  }
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60)   return `(${mins}m ago)`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24)    return `(about ${hrs}h ago)`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1)  return '(yesterday)';
+  if (days < 30)   return `(${days} days ago)`;
+  return `(${Math.floor(days/30)} months ago)`;
+}
+
+// ── Rendering ──────────────────────────────────────────────────────────────
+function renderCards(list) {
+  const container = document.getElementById('jobCards');
+  const html = list.map((j, i) => {
+    const letter  = (j.company || '?')[0].toUpperCase();
+    const roleStr = j.role ? j.role.split(',')[0].trim() : '';
+    const ago     = timeAgo(j.scraped_at);
+
+    // Dot-separated meta line
+    const metaParts = [j.employmentType, j.role, j.location, j.salary].filter(Boolean);
+    const dotMeta   = metaParts.join(' · ');
+
+    return `
+<div class="job-card" onclick="selectJob(${i})">
+  <div class="job-avatar-placeholder">${esc(letter)}</div>
+  <div class="job-card-body">
+    <div class="job-card-header">
+      <span class="job-card-company-name">${esc(j.company || '—')}</span>
+      ${roleStr ? `<span class="job-card-sep">·</span><span>${esc(roleStr)}</span>` : ''}
+      ${ago     ? `<span class="job-card-time">${esc(ago)}</span>` : ''}
+    </div>
+    <div class="job-card-title">${esc(j.title || '—')}</div>
+    <div class="job-card-dotmeta">${esc(dotMeta)}</div>
+  </div>
+  <button class="btn-apply-card" onclick="event.stopPropagation();window.open('${esc(j.applyHref)}','_blank')">Apply</button>
+</div>`;
+  }).join('');
+  container.innerHTML = html;
+}
+
+function renderDetail(j) {
+  const emptyEl = document.getElementById('detailEmpty');
+  const innerEl = document.getElementById('detailInner');
+  if (!j) { emptyEl.style.display = 'flex'; innerEl.style.display = 'none'; return; }
+  emptyEl.style.display = 'none';
+  innerEl.style.display = 'block';
+
+  const applyHref  = j.applyHref;
+  const letter     = (j.company || '?')[0].toUpperCase();
+  const ycUrl      = j.company_slug
+    ? `https://www.ycombinator.com/companies/${esc(j.company_slug)}`
+    : null;
+
+  // Meta grid cells
+  const metaCells = [
+    { label: 'Job type',    val: j.employmentType },
+    { label: 'Role',        val: j.role },
+    { label: 'Experience',  val: j.experience },
+    { label: 'Visa',        val: j.visa },
+  ].filter(c => c.val);
+
+  const metaGridHtml = metaCells.length ? `
+<div class="detail-meta-grid">
+  ${metaCells.map(c => `
+  <div class="detail-meta-cell">
+    <strong>${esc(c.label)}</strong>
+    <span>${esc(c.val)}</span>
+  </div>`).join('')}
+</div>` : '';
+
+  // Skills chips
+  const skillList = (j.skills || '').split(',').map(s => s.trim()).filter(Boolean);
+  const skillsHtml = skillList.length ? `
+<div class="skills-wrap">
+  ${skillList.map(s => `<span class="skill-chip">${esc(s)}</span>`).join('')}
+</div>` : '';
+
+  // Description
+  const descHtml = j.description
+    ? `<div class="detail-description">${parseMarkdown(j.description)}</div>`
+    : '<div class="detail-description" style="color:#aaa">No description available.</div>';
+
+  // Founders
+  const foundersHtml = (j.founders && j.founders.length) ? `
+<div class="sidebar-founders-card">
+  <div class="sidebar-section-label">Founders</div>
+  ${j.founders.map(f => `
+  <div class="founder-row">
+    <div class="founder-avatar">${esc((f.name||'?')[0].toUpperCase())}</div>
+    <div class="founder-info">
+      <div class="founder-name">${esc(f.name)}</div>
+      ${f.linkedin ? `<a class="founder-linkedin" href="${esc(f.linkedin)}" target="_blank" rel="noopener">LinkedIn ↗</a>` : ''}
+    </div>
+  </div>`).join('')}
+</div>` : '';
+
+  innerEl.innerHTML = `
+<div class="detail-two-col">
+
+  <!-- LEFT: main content -->
+  <div class="detail-main">
+
+    <!-- Company header -->
+    <div class="detail-company-header">
+      <div class="detail-co-logo">${esc(letter)}</div>
+      <div>
+        <div class="detail-co-name">${esc(j.company || '—')}</div>
+        ${j.role ? `<div class="detail-co-role">${esc(j.role)}</div>` : ''}
+      </div>
+    </div>
+
+    <!-- Job info box -->
+    <div class="detail-job-box">
+      <div class="detail-title">${esc(j.title || '—')}</div>
+      ${j.salary ? `<div class="detail-salary">${esc(j.salary)}${j.equity ? ' · ' + esc(j.equity) + ' equity' : ''}</div>` : ''}
+      ${j.location ? `<div class="detail-location-line">${esc(j.location)}</div>` : ''}
+      ${metaGridHtml}
+      ${skillsHtml}
+      <div class="detail-actions" style="margin-top:16px">
+        <a class="btn-apply-yc" href="${esc(applyHref)}" target="_blank" rel="noopener">Apply to role ›</a>
+        <button class="btn-copy-link" onclick="saveToClipboard(this, '${esc(applyHref)}')">Copy link</button>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="detail-about">
+      <div class="about-heading">About the role</div>
+      ${descHtml}
+    </div>
+
+  </div>
+
+  <!-- RIGHT: sidebar -->
+  <div class="detail-sidebar">
+
+    <div class="sidebar-company-card">
+      <div class="sidebar-co-logo">${esc(letter)}</div>
+      <div class="sidebar-co-name">${esc(j.company || '—')}</div>
+      ${ycUrl ? `<a class="sidebar-co-link" href="${ycUrl}" target="_blank" rel="noopener">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>
+        </svg>
+        View on YC
+      </a>` : ''}
+    </div>
+
+    ${foundersHtml}
+
+  </div>
+
+</div>`;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function saveToClipboard(btn, url) {
+  navigator.clipboard.writeText(url);
+  const orig = btn.textContent;
+  btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = orig, 1500);
+}
+
+function parseMarkdown(text) {
+  if (!text) return '';
+  let h = String(text)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  h = h.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/__(.*?)__/g, '<strong>$1</strong>');
+  h = h.replace(/(?<!\*)\*([^\*]+)\*(?!\*)/g, '<em>$1</em>');
+  h = h.replace(/\[([^\]]+)\]\(([^)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener" style="text-decoration:underline">$1</a>');
+  h = h.replace(/^[ \t]*[-*][ \t]+(.*)$/gm, '&bull; $1');
+  h = h.replace(/\n/g, '<br />');
+  return h;
+}
+
+function selectJob(i) {
+  if (selectedIdx !== null) {
+    const prev = document.querySelectorAll('.job-card')[selectedIdx];
+    if (prev) prev.classList.remove('selected');
+  }
+  selectedIdx = i;
+  const cards = document.querySelectorAll('.job-card');
+  if (cards[i]) cards[i].classList.add('selected');
+  renderDetail(jobs[i]);
+  if (window.innerWidth < 900) {
+    document.getElementById('jobDetailPane').scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+// ── Search wiring ──────────────────────────────────────────────────────────
+function triggerSearch() {
+  const q   = document.getElementById('queryInput').value.trim();
+  const loc = document.getElementById('locationInput').value.trim();
+  performSearch(q, loc, activeType);
+}
+
+document.getElementById('searchBtn').addEventListener('click', triggerSearch);
+
+['queryInput', 'locationInput'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') triggerSearch();
+  });
+});
+
+// ── Filter pills ───────────────────────────────────────────────────────────
+document.querySelectorAll('.pill-type').forEach(pill => {
+  pill.addEventListener('click', () => {
+    activeType = pill.dataset.type;
+    document.querySelectorAll('.pill-type').forEach(p => p.classList.remove('jobs'));
+    pill.classList.add('jobs');
+    triggerSearch();
+  });
+});
+
+// ── Auto-search on load ────────────────────────────────────────────────────
+triggerSearch();
+
+// ── Push notifications ─────────────────────────────────────────────────────
+const VAPID_PUBLIC_KEY = window.VAPID_PUBLIC_KEY ||
+  'BAnHNZ4whzV_RJ9poiJ1DgaIjBPBiIgYT9lkA_UhomsFhaufqUbS4gm9c8SXNhdfxvFXorC_QntD6mE0TLmpk3Y';
+
+function urlBase64ToUint8Array(b64) {
+  const padding = '='.repeat((4 - b64.length % 4) % 4);
+  const base64  = (b64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+  return new Uint8Array([...atob(base64)].map(c => c.charCodeAt(0)));
+}
+
+const subBtn    = document.getElementById('subBtn');
+const unsubBtn  = document.getElementById('unsubBtn');
+const statusDot = document.getElementById('statusDot');
+const statusTxt = document.getElementById('statusText');
+const statusSub = document.getElementById('statusSub');
+
+function setStatus(state, text, sub) {
+  statusDot.className = 'dot' + (state ? ' ' + state : '');
+  statusTxt.textContent = text;
+  statusSub.textContent = sub || '';
+}
+
+const isIOS        = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone = window.navigator.standalone === true;
+if (isIOS && !isStandalone) document.getElementById('iosBanner').classList.add('visible');
+async function subscribe(reg) {
+  subBtn.disabled = true; subBtn.textContent = 'Subscribing\u2026';
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      setStatus('err', 'Permission denied', 'Enable in Settings › Notifications');
+      subBtn.textContent = 'Denied'; return;
+    }
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+    const resp = await fetch('/api/subscribe', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub.toJSON())
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      setStatus('on', 'Subscribed!', `Total subscribers: ${data.total}`);
+      subBtn.style.display   = 'none';
+      unsubBtn.style.display = 'block';
+    } else throw new Error('Server ' + resp.status);
+  } catch (err) {
+    setStatus('err', 'Subscribe failed', err.message);
+    subBtn.disabled = false; subBtn.textContent = 'Try Again';
+  }
+}
+
+async function unsubscribe(reg) {
+  const sub = await reg.pushManager.getSubscription();
+  if (!sub) return;
+  try {
+    await fetch('/api/subscribe', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: sub.endpoint })
+    });
+    await sub.unsubscribe();
+    setStatus('', 'Unsubscribed', 'Click Subscribe to re-enable');
+    subBtn.textContent = 'Subscribe'; subBtn.disabled = false;
+    subBtn.style.display = 'block'; unsubBtn.style.display = 'none';
+  } catch (err) { console.error('Unsubscribe error:', err.message); }
+}
+
+</script>
+</body>
+</html>

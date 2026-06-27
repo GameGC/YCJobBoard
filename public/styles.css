@@ -1,0 +1,788 @@
+/* ==========================================================================
+   1. CSS VARIABLES & RESET
+   ========================================================================== */
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --yc-orange:   #e06428;
+    --yc-orange-d: #c0521e;
+    --yc-orange-lt:#fff3ec;
+    --yc-bg:       #f5f0eb;
+    --yc-card:     #ffffff;
+    --yc-border:   #e5ddd5;
+    --yc-hover:    #faf6f2;
+    --yc-text:     #1a1a1a;
+    --yc-sub:      #6b6b6b;
+    --yc-muted:    #a0a0a0;
+    --yc-tag-bg:   rgba(0,0,0,0.06);
+    --header-h:    95px;
+
+    /* kept for push-notification status dot (unchanged logic) */
+    --li-blue:   #e06428;
+    --li-blue-d: #c0521e;
+}
+
+body {
+    background: var(--yc-bg);
+    color: var(--yc-text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+}
+
+/* ==========================================================================
+   2. GLOBAL LAYOUT
+   ========================================================================== */
+
+.app-layout {
+    padding-top: var(--header-h);
+    min-height: 100vh;
+}
+
+.main-content {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 16px;
+    min-height: calc(100vh - var(--header-h));
+    display: flex;
+}
+
+/* ==========================================================================
+   3. HEADER
+   ========================================================================== */
+
+.header {
+    background: var(--yc-card);
+    padding: 0 16px;
+    height: var(--header-h);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    max-width: 1280px;
+    width: 100%;
+    margin: 0 auto;
+    height: 50%;
+    gap: 8px;
+}
+
+.logo-search {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: 8px;
+}
+
+/* YC Logo badge */
+.yc-logo {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    background: var(--yc-orange);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.yc-logo span {
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: -0.5px;
+    font-family: inherit;
+}
+
+/* Search inputs */
+.search-input {
+    height: 36px;
+    border: 1px solid var(--yc-border);
+    border-radius: 6px;
+    padding: 0 12px;
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--yc-bg);
+    color: var(--yc-text);
+    outline: none;
+    cursor: text;
+    width: 200px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.search-input::placeholder { color: var(--yc-muted); }
+.search-input:focus {
+    border-color: var(--yc-orange);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(224,100,40,0.12);
+}
+
+/* Search button */
+.btn-search {
+    height: 36px;
+    padding: 0 18px;
+    border-radius: 6px;
+    border: none;
+    background: var(--yc-orange);
+    color: #fff;
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.btn-search:hover { background: var(--yc-orange-d); }
+
+/* Filter bar */
+.filter-bar {
+    display: flex;
+    align-items: center;
+    max-width: 1280px;
+    width: 100%;
+    margin: 0 auto;
+    height: 50%;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.filter-bar::-webkit-scrollbar { display: none; }
+
+/* Pills */
+.pill {
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1px solid var(--yc-border);
+    background: transparent;
+    color: var(--yc-sub);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    user-select: none;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.pill:hover:not(:disabled) { background: var(--yc-hover); }
+
+.pill-type.jobs {
+    background: var(--yc-orange);
+    color: #fff;
+    border-color: var(--yc-orange);
+}
+.pill-type:hover:not(.jobs) {
+    border-color: var(--yc-orange);
+    color: var(--yc-orange);
+    background: var(--yc-orange-lt);
+}
+
+.pill.sub-btn {
+    background: var(--yc-orange);
+    color: #fff;
+    border-color: var(--yc-orange);
+    cursor: pointer;
+    font-weight: 600;
+}
+.pill.sub-btn:hover:not(:disabled) { background: var(--yc-orange-d); }
+.pill.sub-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.pill.unsub-btn { color: #c00; border-color: #c00; cursor: pointer; }
+.pill.unsub-btn:hover { background: rgba(200,0,0,0.05); }
+
+.pill-spacer { flex: 1; min-width: 4px; }
+
+/* ==========================================================================
+   4. JOB LIST (LEFT PANE)
+   ========================================================================== */
+
+.job-list-pane {
+    flex: 0 0 400px;
+    background: transparent;
+    overflow-y: auto;
+    max-height: calc(100vh - var(--header-h));
+    position: sticky;
+    top: var(--header-h);
+    padding: 12px 12px 12px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.list-header {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 4px 0 4px 4px;
+}
+
+.list-count {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--yc-sub);
+}
+
+.list-query {
+    font-size: 13px;
+    color: var(--yc-orange);
+    font-style: italic;
+}
+
+/* YC-style job card */
+.job-card {
+    background: var(--yc-card);
+    border: 1px solid var(--yc-border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: box-shadow 0.15s, border-color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.job-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-color: #d0c8c0;
+}
+.job-card.selected {
+    border-color: var(--yc-orange);
+    box-shadow: 0 0 0 2px rgba(224,100,40,0.18);
+}
+
+/* Letter avatar */
+.job-avatar-placeholder {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--yc-bg);
+    border: 1px solid var(--yc-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--yc-sub);
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.job-card-body {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Row 1: Company · role · time */
+.job-card-header {
+    font-size: 13px;
+    color: var(--yc-sub);
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+.job-card-company-name {
+    font-weight: 600;
+    color: var(--yc-text);
+}
+.job-card-sep { color: var(--yc-muted); }
+.job-card-time { color: var(--yc-muted); }
+
+/* Row 2: Job title */
+.job-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--yc-orange);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Row 3: dot-separated meta */
+.job-card-dotmeta {
+    font-size: 12px;
+    color: var(--yc-sub);
+}
+
+/* Right: small Apply button on card */
+.btn-apply-card {
+    flex-shrink: 0;
+    height: 32px;
+    padding: 0 14px;
+    border-radius: 6px;
+    border: none;
+    background: var(--yc-orange);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.btn-apply-card:hover { background: var(--yc-orange-d); }
+
+.no-jobs {
+    padding: 32px 16px;
+    text-align: center;
+    color: var(--yc-sub);
+    font-size: 14px;
+    background: var(--yc-card);
+    border: 1px solid var(--yc-border);
+    border-radius: 10px;
+}
+
+/* ==========================================================================
+   5. JOB DETAIL (RIGHT PANE)
+   ========================================================================== */
+
+.job-detail-pane {
+    flex: 1;
+    background: transparent;
+    overflow-y: auto;
+    max-height: calc(100vh - var(--header-h));
+    position: sticky;
+    top: var(--header-h);
+    padding: 12px 0 12px 12px;
+}
+
+.detail-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 300px;
+    color: var(--yc-muted);
+    font-size: 15px;
+    background: var(--yc-card);
+    border: 1px solid var(--yc-border);
+    border-radius: 10px;
+}
+
+/* Two-column layout inside detail */
+.detail-inner { /* legacy wrapper, now used for two-col container */ }
+
+.detail-two-col {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.detail-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.detail-sidebar {
+    flex: 0 0 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Company header (logo + name + tagline) */
+.detail-company-header {
+    background: var(--yc-card);
+    border: 1px solid var(--yc-border);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.detail-co-logo {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--yc-bg);
+    border: 1px solid var(--yc-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--yc-sub);
+    flex-shrink: 0;
+}
+.detail-co-name {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--yc-text);
+}
+.detail-co-role {
+    font-size: 13px;
+    color: var(--yc-sub);
+    margin-top: 2px;
+}
+
+/* Job info box */
+.detail-job-box {
+    background: var(--yc-card);
+    border: 1px solid var(--yc-border);
+    border-radius: 10px;
+    padding: 20px;
+}
+.detail-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--yc-text);
+    margin-bottom: 6px;
+    line-height: 1.3;
+}
+.detail-salary {
+    font-size: 15px;
+    color: var(--yc-sub);
+    margin-bottom: 2px;
+}
+.detail-location-line {
+    font-size: 13px;
+    color: var(--yc-muted);
+    margin-bottom: 14px;
+}
+
+/* Meta grid: Job type / Role / Experience / Visa */
+.detail-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    padding: 14px 0;
+    border-top: 1px solid var(--yc-border);
+    border-bottom: 1px solid var(--yc-border);
+    margin-bottom: 16px;
+}
+.detail-meta-cell strong {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--yc-muted);
+    margin-bottom: 4px;
+}
+.detail-meta-cell span {
+    font-size: 13px;
+    color: var(--yc-text);
+}
+
+/* Apply button in detail */
+.btn-apply-yc {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    height: 40px;
+    padding: 0 24px;
+    border-radius: 8px;
+    border: none;
+    background: var(--yc-orange);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.btn-apply-yc:hover { background: var(--yc-orange-d); }
+
+.btn-copy-link {
+    display: inline-flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 20px;
+    border-radius: 8px;
+    border: 1px solid var(--yc-border);
+    background: transparent;
+    color: var(--yc-sub);
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+.btn-copy-link:hover { background: var(--yc-hover); }
+
+.detail-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* About the role section */
+.detail-about {
+    background: var(--yc-card);
+    border: 1px solid var(--yc-border);
+    border-radius: 10px;
+    padding: 20px;
+}
+.about-heading {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--yc-text);
+    margin-bottom: 14px;
+}
+.detail-description {
+    font-size: 14px;
+    color: var(--yc-sub);
+    line-height: 1.7;
+    white-space: pre-line;
+}
+
+/* Sidebar company card */
+.sidebar-company-card {
+    background: var(--yc-card);
+    border: 1px solid var(--yc-border);
+    border-radius: 10px;
+    padding: 16px;
+}
+.sidebar-co-logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--yc-bg);
+    border: 1px solid var(--yc-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--yc-sub);
+    margin-bottom: 10px;
+}
+.sidebar-co-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--yc-text);
+    margin-bottom: 12px;
+}
+.sidebar-co-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    color: var(--yc-orange);
+    text-decoration: none;
+    font-weight: 500;
+}
+.sidebar-co-link:hover { text-decoration: underline; }
+
+/* Sidebar founders card */
+.sidebar-founders-card {
+    background: var(--yc-card);
+    border: 1px solid var(--yc-border);
+    border-radius: 10px;
+    padding: 16px;
+}
+.sidebar-section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--yc-muted);
+    margin-bottom: 12px;
+}
+.founder-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--yc-border);
+}
+.founder-row:last-child { border-bottom: none; }
+.founder-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--yc-bg);
+    border: 1px solid var(--yc-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--yc-sub);
+    flex-shrink: 0;
+}
+.founder-info { flex: 1; min-width: 0; }
+.founder-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--yc-text);
+}
+.founder-linkedin {
+    font-size: 12px;
+    color: var(--yc-orange);
+    text-decoration: none;
+}
+.founder-linkedin:hover { text-decoration: underline; }
+
+/* Skills in detail */
+.skills-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+}
+.skill-chip {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--yc-orange-lt);
+    color: var(--yc-orange);
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid rgba(224,100,40,0.2);
+}
+
+/* ==========================================================================
+   6. SHARED / UTILITIES
+   ========================================================================== */
+
+/* Push status strip */
+.status-strip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 16px;
+    background: var(--yc-orange-lt);
+    border-bottom: 1px solid rgba(224,100,40,0.15);
+    font-size: 13px;
+    color: var(--yc-sub);
+}
+
+.dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #ccc;
+    flex-shrink: 0;
+}
+.dot.on {
+    background: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34,197,94,0.2);
+    animation: pulse 2s infinite;
+}
+.dot.err { background: #e00; }
+
+/* iOS Banner */
+.ios-banner {
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 12px 16px;
+    font-size: 13px;
+    line-height: 1.6;
+    display: none;
+}
+.ios-banner.visible { display: block; }
+.ios-banner strong {
+    color: #b45309;
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+.ios-steps {
+    list-style: none;
+    counter-reset: s;
+    padding-left: 0;
+}
+.ios-steps li {
+    counter-increment: s;
+    padding-left: 20px;
+    position: relative;
+    color: var(--yc-sub);
+    margin-bottom: 2px;
+}
+.ios-steps li::before {
+    content: counter(s)'.';
+    position: absolute;
+    left: 0;
+    color: #b45309;
+    font-weight: 600;
+}
+
+/* Custom console toast */
+.console.log {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.82);
+    color: #fff;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+}
+.console.log.show { opacity: 1; }
+
+/* Loading */
+.loading-spinner { animation: pulse 1.2s ease-in-out infinite; }
+
+/* Animations */
+@keyframes spin  { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+
+/* ==========================================================================
+   7. RESPONSIVE
+   ========================================================================== */
+
+@media (max-width: 900px) {
+    .main-content { flex-direction: column; padding: 8px; }
+
+    .job-list-pane {
+        flex: none;
+        width: 100%;
+        position: static;
+        max-height: none;
+        padding: 0;
+        gap: 8px;
+    }
+
+    .job-detail-pane {
+        flex: none;
+        width: 100%;
+        position: static;
+        max-height: none;
+        padding: 0;
+    }
+
+    .detail-two-col { flex-direction: column; }
+    .detail-sidebar { flex: none; width: 100%; flex-direction: row; flex-wrap: wrap; }
+    .sidebar-company-card, .sidebar-founders-card { flex: 1; min-width: 160px; }
+
+    .detail-meta-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+    .search-input { flex: 1; width: auto; min-width: 80px; }
+    .btn-search svg { display: none; }
+
+    .job-avatar-placeholder { display: none; }
+    .job-card-title { white-space: normal; }
+
+    .btn-apply-card { display: none; } /* keep card click only on mobile */
+
+    .detail-meta-grid { grid-template-columns: repeat(2, 1fr); }
+    .detail-title { font-size: 18px; }
+}
